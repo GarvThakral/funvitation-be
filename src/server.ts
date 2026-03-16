@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { nanoid } from "nanoid";
 import { initializeApp } from "firebase/app";
 import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore";
-import { buildInvitationPayload } from "./lib/invitation";
+import { buildInvitationPayload } from "./lib/invitation.js";
 import type { Invitation } from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
