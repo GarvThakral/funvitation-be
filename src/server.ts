@@ -50,6 +50,48 @@ const dodoClient = isDodoConfigured
     })
   : null;
 
+const getErrorDetails = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return {
+      message: 'Unknown error',
+      statusCode: undefined as number | undefined,
+      providerMessage: undefined as string | undefined,
+    };
+  }
+
+  const candidate = error as Error & {
+    statusCode?: number;
+    status?: number;
+    responseBody?: unknown;
+    body?: unknown;
+  };
+
+  const statusCode = candidate.statusCode ?? candidate.status;
+  const payload = candidate.responseBody ?? candidate.body;
+
+  let providerMessage: string | undefined;
+  if (typeof payload === 'string') {
+    providerMessage = payload;
+  } else if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    const detail =
+      (typeof record.message === 'string' && record.message) ||
+      (typeof record.error === 'string' && record.error) ||
+      (typeof record.detail === 'string' && record.detail) ||
+      (typeof record.code === 'string' && record.code);
+
+    if (detail) {
+      providerMessage = detail;
+    }
+  }
+
+  return {
+    message: error.message,
+    statusCode,
+    providerMessage,
+  };
+};
+
 const createCloudinarySignature = (params: Record<string, string>, apiSecret: string) => {
   const serialized = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== '')
@@ -473,8 +515,21 @@ app.post('/api/billing/checkout', async (req, res) => {
 
     res.json({ mode: 'checkout', checkoutUrl: session.checkout_url });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not create checkout session.';
-    res.status(500).json({ error: message });
+    const details = getErrorDetails(error);
+    console.error('Dodo checkout session creation failed:', {
+      statusCode: details.statusCode,
+      message: details.message,
+      providerMessage: details.providerMessage,
+      environment: dodoEnvironment,
+      requestedPlanId,
+      hasApiKey: Boolean(dodoApiKey),
+    });
+
+    res.status(details.statusCode || 500).json({
+      error: details.providerMessage || details.message || 'Could not create checkout session.',
+      source: 'dodo_payments',
+      statusCode: details.statusCode || 500,
+    });
   }
 });
 
@@ -501,8 +556,21 @@ app.post('/api/billing/portal', async (req, res) => {
     });
     res.json({ portalUrl: session.link });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not create a customer portal session.';
-    res.status(500).json({ error: message });
+    const details = getErrorDetails(error);
+    console.error('Dodo customer portal creation failed:', {
+      statusCode: details.statusCode,
+      message: details.message,
+      providerMessage: details.providerMessage,
+      environment: dodoEnvironment,
+      hasApiKey: Boolean(dodoApiKey),
+      hasCustomerId: Boolean(profile.dodoCustomerId),
+    });
+
+    res.status(details.statusCode || 500).json({
+      error: details.providerMessage || details.message || 'Could not create a customer portal session.',
+      source: 'dodo_payments',
+      statusCode: details.statusCode || 500,
+    });
   }
 });
 
