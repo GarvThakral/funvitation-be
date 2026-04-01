@@ -35,7 +35,6 @@ export const DEFAULT_ENTRANCE_ANIMATION: NonNullable<Invitation['entranceAnimati
 export const DEFAULT_CANVAS_SIZE = { width: 600, height: 800 };
 export const DEFAULT_ELEMENT_ANIMATION: NonNullable<CanvasElement['elementAnimation']> = {
   type: 'none',
-  duration: undefined,
   loop: true,
   delay: 0,
 };
@@ -92,12 +91,17 @@ const sanitizeElementAnimation = (
   const delay =
     value.delay === undefined ? 0 : Math.max(0, Math.min(5, toFiniteNumber(value.delay, 0)));
 
-  return {
+  const sanitized: NonNullable<CanvasElement['elementAnimation']> = {
     type: safeType,
-    duration,
     loop: value.loop ?? true,
     delay,
   };
+
+  if (duration !== undefined) {
+    sanitized.duration = duration;
+  }
+
+  return sanitized;
 };
 
 export const sanitizeCanvasSize = (value: Invitation['canvasSize']) => {
