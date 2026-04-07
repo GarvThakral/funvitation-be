@@ -56,9 +56,9 @@ const DEFAULT_POLICIES: Record<PlanId, PlanPolicy> = {
     id: 'starter',
     label: 'Starter',
     priceLabel: '$0',
-    marketingFeatures: ['1 active invite', 'Core templates', 'Basic sharing'],
+    marketingFeatures: ['5 active invites', 'Core templates', 'Basic sharing'],
     limits: {
-      maxActiveInvites: 1,
+      maxActiveInvites: 5,
     },
     capabilities: {
       templateAccess: 'core',

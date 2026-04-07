@@ -762,7 +762,24 @@ app.post('/api/upload-image', async (req, res) => {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      res.status(502).json({ error: `Cloudinary upload failed: ${errorText}` });
+      const errorPayload = (() => {
+        try {
+          return JSON.parse(errorText) as {
+            error?: { message?: string };
+          };
+        } catch {
+          return null;
+        }
+      })();
+      const errorMessage =
+        errorPayload &&
+        typeof errorPayload === 'object' &&
+        errorPayload.error &&
+        typeof errorPayload.error.message === 'string'
+          ? errorPayload.error.message
+          : errorText || 'Unknown Cloudinary error.';
+
+      res.status(502).json({ error: `Cloudinary upload failed: ${errorMessage}` });
       return;
     }
 
